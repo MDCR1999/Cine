@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-5">
+        <div class="card card-custom p-4 mb-4">
+            <h4><i class="fa-solid fa-plus text-warning me-2"></i>Agregar Nuevo Combo</h4>
+            <hr class="border-secondary">
+            <form action="/admin/combos/guardar" method="POST" enctype="multipart/form-data">
+                <div class="mb-3">
+                    <label class="form-label">Nombre del Combo:</label>
+                    <input type="text" name="nombre" class="form-control bg-dark text-light border-secondary" required placeholder="Ej. Combo Pareja">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Descripción:</label>
+                    <textarea name="descripcion" class="form-control bg-dark text-light border-secondary" rows="2" placeholder="2 Crispetas grandes + 2 Gaseosas..."></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Precio ($):</label>
+                    <input type="number" name="precio" class="form-control bg-dark text-light border-secondary" step="500" required placeholder="25000">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Imagen del Combo:</label>
+                    <input type="file" name="imagen" class="form-control bg-dark text-light border-secondary" accept="image/*" required>
+                </div>
+                <button type="submit" class="btn btn-primary-custom w-100 fw-bold">Guardar Combo</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="col-md-7">
+        <div class="card card-custom p-4">
+            <h4>Combos Registrados</h4>
+            <hr class="border-secondary">
+            <div class="table-responsive">
+                <table class="table table-dark table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Imagen</th>
+                            <th>Nombre</th>
+                            <th>Precio</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for c in combos %}
+                        <tr>
+                            <td>
+                                {% if c.imagen %}
+                                    <img src="{{ url_for('static', filename='uploads/combos/' ~ c.imagen) }}" style="width: 50px; height: 50px; object-fit: cover;" class="rounded">
+                                {% else %}
+                                    <span class="text-muted small">Sin foto</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong>{{ c.nombre }}</strong><br>
+                                <small class="text-muted">{{ c.descripcion }}</small>
+                            </td>
+                            <td>$ {{ "{:,.0f}".format(c.precio) }}</td>
+                            <td>
+                                <a href="/admin/combos/eliminar/{{ c.id }}" class="btn btn-danger btn-sm" onclick="return confirm('¿Eliminar este combo?')">
+                                    <i class="fa-solid fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-center text-muted">No hay combos registrados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+# Sesión de WhatsApp — NUNCA subir (es tu sesión activa de WhatsApp)
+whatsapp_session/
+
+# Base de datos con datos personales de compradores (cédula, nombre, celular)
+database.db
+*.db-journal
+*.db-wal
+
+# Boletas generadas (contienen datos de clientes)
+static/tickets/
+
+# Entorno Python
+venv/
+__pycache__/
+*.pyc

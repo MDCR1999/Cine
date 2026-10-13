@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-7">
+        <div class="card card-custom p-4 shadow-lg">
+            <h3 class="text-center mb-4"><i class="fa-solid fa-receipt text-warning me-2"></i>Paso 4: Resumen y Pago</h3>
+            
+            <div class="mb-3">
+                <h5 class="text-info border-bottom border-secondary pb-1">Datos del Titular</h5>
+                <p class="mb-1"><strong>Nombre:</strong> {{ cliente.nombre }}</p>
+                <p class="mb-1"><strong>Cédula:</strong> {{ cliente.cedula }}</p>
+                <p class="mb-1"><strong>Celular:</strong> {{ cliente.celular }}</p>
+            </div>
+
+            <div class="mb-3">
+                <h5 class="text-info border-bottom border-secondary pb-1">Detalle de Asientos</h5>
+                <ul class="list-group list-group-flush bg-transparent">
+                    {% for asiento in asientos %}
+                        <li class="list-group-item bg-transparent text-light border-secondary d-flex justify-content-between">
+                            <span>Asiento {{ asiento.codigo }}</span>
+                            <span>$ {{ "{:,.0f}".format(asiento.precio) }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+
+            {% if combos_detalle %}
+            <div class="mb-3">
+                <h5 class="text-info border-bottom border-secondary pb-1">Detalle de Combos</h5>
+                <ul class="list-group list-group-flush bg-transparent">
+                    {% for c in combos_detalle %}
+                        <li class="list-group-item bg-transparent text-light border-secondary d-flex justify-content-between">
+                            <span>{{ c.nombre }} (x{{ c.cantidad }})</span>
+                            <span>$ {{ "{:,.0f}".format(c.subtotal) }}</span>
+                        </li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <div class="alert alert-dark border-secondary text-center fs-3 fw-bold my-4 text-success">
+                Total a Pagar: $ {{ "{:,.0f}".format(total_final) }}
+            </div>
+
+            <form action="/confirmar_pago" method="POST">
+            <div class="mb-4">
+                <label class="form-label fw-bold">Seleccione Método de Pago:</label>
+                <!-- Agregamos un id al select para capturarlo más fácil -->
+                <select id="selector-pago" name="metodo_pago" class="form-select bg-dark text-light border-secondary form-select-lg" required>
+                    <option value="Efectivo">Efectivo (Caja)</option>
+                    <option value="Nequi / Daviplata">Nequi / Daviplata</option>
+                    <option value="Tarjeta de Crédito / Débito">Tarjeta de Crédito / Débito</option>
+                </select>
+            </div>
+
+            <div class="d-grid">
+                <button type="submit" class="btn btn-success btn-lg fw-bold">
+                    Confirmar Pago y Generar Boleta <i class="fa-solid fa-check-circle ms-2"></i>
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script>
+    const socket = io();
+
+    // 1. Avisar al TV que llegamos a la pantalla de pago (por defecto en Efectivo)
+    document.addEventListener('DOMContentLoaded', () => {
+        socket.emit('evento_cajero', {
+            pantalla: 'pago',
+            metodo: document.getElementById('selector-pago').value
+        });
+    });
+
+    // 2. Cuando el cajero cambia el método de pago en el selector (Efectivo / Nequi)
+    document.getElementById('selector-pago').addEventListener('change', function(e) {
+        socket.emit('evento_cajero', {
+            pantalla: 'pago',
+            metodo: e.target.value
+        });
+    });
+</script>
+{% endblock %}

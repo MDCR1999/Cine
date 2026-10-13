@@ -1,0 +1,122 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8">
+        <h3 class="mb-4"><i class="fa-solid fa-popcorn text-warning me-2"></i>Paso 3: Elige tus Combos</h3>
+        
+        {% if not combos %}
+            <div class="alert alert-info">
+                No hay combos configurados por el momento. Puedes continuar al pago o agregarlos desde el panel de administración.
+            </div>
+        {% else %}
+            <div class="row row-cols-1 row-cols-md-2 g-4">
+                {% for combo in combos %}
+                <div class="col">
+                    <div class="card card-custom h-100">
+                        {% if combo.imagen %}
+                            <img src="{{ url_for('static', filename='uploads/combos/' ~ combo.imagen) }}" class="card-img-top" alt="{{ combo.nombre }}" style="height: 180px; object-fit: cover;">
+                        {% else %}
+                            <div class="bg-secondary text-center py-5 text-light">Sin Imagen</div>
+                        {% endif %}
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">{{ combo.nombre }}</h5>
+                            <p class="card-text text-muted small flex-grow-1">{{ combo.descripcion }}</p>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <span class="fs-5 fw-bold text-success">$ {{ "{:,.0f}".format(combo.precio) }}</span>
+                                <div class="input-group" style="width: 120px;">
+                                    <button class="btn btn-outline-light btn-sm" type="button" onclick="cambiarCantidad({{ combo.id }}, {{ combo.precio }}, -1)">-</button>
+                                    <input type="text" class="form-control form-control-sm text-center bg-dark text-light border-secondary" id="cant-{{ combo.id }}" value="0" readonly>
+                                    <button class="btn btn-outline-light btn-sm" type="button" onclick="cambiarCantidad({{ combo.id }}, {{ combo.precio }}, 1)">+</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+
+    <div class="col-md-3 mt-4 mt-md-0">
+        <div class="card card-custom p-4 sticky-top" style="top: 20px;">
+            <h4>Resumen de Compra</h4>
+            <hr class="border-secondary">
+            <p><strong>Boletas:</strong> <span class="text-warning">{{ total_boletas_cant }} asiento(s)</span></p>
+            <p><strong>Subtotal Boletas:</strong> $<span id="subtotal-boletas">{{ "{:,.0f}".format(total_boletas_precio) }}</span></p>
+            <p><strong>Subtotal Combos:</strong> $<span id="subtotal-combos">0</span></p>
+            <hr class="border-secondary">
+            <p class="fs-4 fw-bold">Total General: $<span id="total-general" class="text-success">{{ "{:,.0f}".format(total_boletas_precio) }}</span></p>
+
+            <form action="/pago" method="POST" id="form-combos">
+            <input type="hidden" name="combos_json" id="input-combos" value="[]">
+            <button type="submit" class="btn btn-success w-100 btn-lg fw-bold mt-3">
+                Continuar al Pago <i class="fa-solid fa-credit-card ms-2"></i>
+            </button>
+        </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script>
+    const socket = io();
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Capturamos el HTML del catálogo de combos y lo enviamos al TV
+        const catalogoContenedor = document.querySelector('.row-cols-1.row-cols-md-2.g-4');
+        socket.emit('evento_cajero', { 
+            pantalla: 'combos',
+            catalogo_html: catalogoContenedor ? catalogoContenedor.innerHTML : ''
+        });
+    });
+
+    const baseBoletasPrecio = {{ total_boletas_precio }};
+    let combosSeleccionados = {};
+
+    function cambiarCantidad(id, precio, cambio) {
+        const input = document.getElementById(`cant-${id}`);
+        let actual = parseInt(input.value) || 0;
+        actual = Math.max(0, actual + cambio);
+        input.value = actual;
+
+        if (actual > 0) {
+            let card = input.closest('.card-body');
+            let nombre = card.querySelector('.card-title').innerText;
+            combosSeleccionados[id] = { id: id, nombre: nombre, cantidad: actual, precio: precio };
+        } else {
+            delete combosSeleccionados[id];
+        }
+        actualizarTotales();
+    }
+
+    function actualizarTotales() {
+        let totalCombos = 0;
+        const listaCombos = [];
+        let combosTV = [];
+
+        for (const id in combosSeleccionados) {
+            const item = combosSeleccionados[id];
+            totalCombos += item.cantidad * item.precio;
+            listaCombos.push(item);
+            combosTV.push({ nombre: item.nombre, cantidad: item.cantidad });
+        }
+
+        const subtotalCombos = totalCombos.toLocaleString('es-CO');
+        const totalGeneral = (baseBoletasPrecio + totalCombos).toLocaleString('es-CO');
+        
+        document.getElementById('subtotal-combos').textContent = subtotalCombos;
+        document.getElementById('total-general').textContent = totalGeneral;
+        document.getElementById('input-combos').value = JSON.stringify(listaCombos);
+
+        socket.emit('evento_cajero', {
+            pantalla: 'combos',
+            accion: 'actualizar_combos',
+            combos: combosTV,
+            total: '$' + totalGeneral
+        });
+    }
+</script>
+{% endblock %}

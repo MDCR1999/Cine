@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<style>
+    .pantalla-admin {
+        width: 100%;
+        height: 10px;
+        background: linear-gradient(to right, #38bdf8, #818cf8, #38bdf8);
+        border-radius: 4px;
+        box-shadow: 0px 2px 10px rgba(56, 189, 248, 0.5);
+    }
+    .asiento-mini {
+        width: 26px;
+        height: 26px;
+        margin: 2px;
+        border-radius: 4px;
+        font-size: 10px;
+        font-weight: bold;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .asiento-disp { background-color: #334155; color: #94a3b8; }
+    .asiento-vip { background-color: #f59e0b; color: #1e293b; }
+    .asiento-ocup { background-color: #ef4444; color: white; }
+    .asiento-inhab { background-color: #1e293b; color: #475569; border: 1px dashed #475569; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fa-solid fa-chart-line text-warning me-2"></i>Panel Principal de Control</h2>
+    <div class="d-flex gap-2">
+        <a href="/admin/diseno_boleta" class="btn btn-warning fw-bold">
+            <i class="fa-solid fa-ticket me-2"></i>Diseño Boleta
+        </a>
+        <a href="/admin/exportar_excel" class="btn btn-success fw-bold">
+            <i class="fa-solid fa-file-excel me-2"></i>Exportar Base de Datos a Excel
+        </a>
+    </div>
+</div>
+
+<!-- Tarjetas de Métricas -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3">
+        <div class="card card-custom p-3 border-start border-primary border-4">
+            <span class="text-muted small">Total Dinero Recaudado</span>
+            <h3 class="text-success fw-bold mb-0">$ {{ "{:,.0f}".format(total_dinero) }}</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-3 border-start border-info border-4">
+            <span class="text-muted small">Boletas Vendidas</span>
+            <h3 class="text-info fw-bold mb-0">{{ total_boletas }}</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-3 border-start border-warning border-4">
+            <span class="text-muted small">Aforo Ocupado ({{ total_boletas }}/{{ total_asientos_sala }})</span>
+            <h3 class="text-warning fw-bold mb-0">{{ "{:.1f}".format((total_boletas / total_asientos_sala) * 100) if total_asientos_sala > 0 else 0 }}%</h3>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card card-custom p-3 border-start border-danger border-4">
+            <span class="text-muted small">Total Transacciones</span>
+            <h3 class="text-light fw-bold mb-0">{{ ventas|length }}</h3>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Mapa Visual y Configuración Avanzada de Sala (Aumentado a col-lg-8) -->
+    <div class="col-lg-8">
+        <div class="card card-custom p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Estado Actual de la Sala</h5>
+                <button class="btn btn-sm btn-outline-warning" data-bs-toggle="collapse" data-bs-target="#formConfigSala">
+                    <i class="fa-solid fa-gear me-1"></i>Configurar Sala
+                </button>
+            </div>
+
+            <!-- Formulario Desplegable para Configurar Naves, Filas y Pasillos -->
+            <div class="collapse mb-3" id="formConfigSala">
+                <div class="card bg-dark p-3 border border-secondary">
+                    <form action="/admin/configurar_sala" method="POST" class="row g-2 align-items-end">
+                        <div class="col-6">
+                            <label class="form-label small text-muted">Filas Totales</label>
+                            <input type="number" name="filas" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ config_sala.filas }}" min="1" max="30" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-muted">Sillas por Fila (Cols)</label>
+                            <input type="number" name="columnas" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ config_sala.columnas }}" min="1" max="30" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-muted">Sillas por Nave (Bloque)</label>
+                            <input type="number" name="sillas_bloque" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ config_sala.sillas_bloque }}" min="1" max="15" required>
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-muted">Filas Preferenciales (VIP)</label>
+                            <input type="number" name="filas_vip" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ config_sala.filas_vip }}" min="0" max="10" required>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small text-muted">Sillas Inhabilitadas (ej. A1, A2)</label>
+                            <input type="text" name="sillas_inhabilitadas" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ config_sala.sillas_inhabilitadas_texto }}" placeholder="A1, B2">
+                        </div>
+                        <div class="col-12 mt-2">
+                            <button type="submit" class="btn btn-sm btn-warning w-100">Guardar Distribución de Sala</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="pantalla-admin my-2"></div>
+            
+            <!-- Contenedor con espacio adecuado para las naves -->
+            <div class="d-flex justify-content-center gap-4 py-3 overflow-x-auto">
+                {% for nave in naves %}
+                <div class="border border-secondary px-4 py-3 rounded text-center bg-dark" style="background-color: #0f172a !important;">
+                    <span class="badge bg-secondary mb-3 px-3 py-1 fw-bold">NAVE {{ nave.numero }}</span>
+                    <div class="d-flex flex-column align-items-center gap-1">
+                        {% for fila in nave.filas %}
+                            <div class="d-flex align-items-center gap-1">
+                                <span class="me-2 text-muted fw-bold" style="width: 25px; text-align: right; font-size: 0.85rem;">{{ fila.etiqueta }}</span>
+                                {% for asiento in fila.asientos %}
+                                    {% if asiento.estado == 'inhabilitado' %}
+                                        <div class="asiento-mini asiento-inhab" style="width: 28px; height: 28px; line-height: 28px; font-size: 0.8rem;" title="Inhabilitada ({{ asiento.codigo }})">X</div>
+                                    {% elif asiento.estado == 'ocupado' %}
+                                        <div class="asiento-mini asiento-ocup" style="width: 28px; height: 28px; line-height: 28px; font-size: 0.8rem;" title="Ocupada ({{ asiento.codigo }})">{{ asiento.num_silla }}</div>
+                                    {% elif asiento.es_vip %}
+                                        <div class="asiento-mini asiento-vip" style="width: 28px; height: 28px; line-height: 28px; font-size: 0.8rem;" title="VIP ({{ asiento.codigo }})">{{ asiento.num_silla }}</div>
+                                    {% else %}
+                                        <div class="asiento-mini asiento-disp" style="width: 28px; height: 28px; line-height: 28px; font-size: 0.8rem;" title="Disponible ({{ asiento.codigo }})">{{ asiento.num_silla }}</div>
+                                    {% endif %}
+                                {% endfor %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <div class="d-flex justify-content-center gap-2 mt-3 small text-muted flex-wrap">
+                <div><span class="d-inline-block bg-secondary rounded" style="width:10px; height:10px;"></span> Estándar</div>
+                <div><span class="d-inline-block bg-warning rounded" style="width:10px; height:10px;"></span> VIP</div>
+                <div><span class="d-inline-block bg-danger rounded" style="width:10px; height:10px;"></span> Ocupada</div>
+                <div><span class="d-inline-block border border-secondary rounded" style="width:10px; height:10px;"></span> Inhabilitada</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Módulo de Gestión de Combos (Reducido a col-lg-4) -->
+    <div class="col-lg-4">
+        <div class="card card-custom p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0">Gestión de Combos</h5>
+                <button class="btn btn-sm btn-primary" data-bs-toggle="collapse" data-bs-target="#formCrearCombo">
+                    <i class="fa-solid fa-plus me-1"></i>Nuevo
+                </button>
+            </div>
+
+            <!-- Formulario para Agregar Combo -->
+            <div class="collapse mb-3" id="formCrearCombo">
+                <div class="card bg-dark p-3 border border-secondary">
+                    <form action="/admin/combos/guardar" method="POST" enctype="multipart/form-data" class="row g-2">
+                        <div class="col-6">
+                            <input type="text" name="nombre" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Nombre Combo" required>
+                        </div>
+                        <div class="col-6">
+                            <input type="number" step="0.01" name="precio" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Precio ($)" required>
+                        </div>
+                        <div class="col-12">
+                            <input type="text" name="descripcion" class="form-control form-control-sm bg-dark text-light border-secondary" placeholder="Descripción">
+                        </div>
+                        <div class="col-12">
+                            <input type="file" name="imagen" class="form-control form-control-sm bg-dark text-light border-secondary" accept="image/*">
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-sm btn-success w-100">Guardar Combo</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Lista de Combos Existentes -->
+            <div class="table-responsive" style="max-height: 320px;">
+                <table class="table table-dark table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Combo</th>
+                            <th>Precio</th>
+                            <th>Vendidos</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for combo in combos_db %}
+                        <tr>
+                            <td><strong>{{ combo.nombre }}</strong></td>
+                            <td class="text-success">$ {{ "{:,.0f}".format(combo.precio) }}</td>
+                            <td>
+                                <span class="badge bg-info">
+                                    {{ combos_resumen[combo.nombre].cantidad if combo.nombre in combos_resumen else 0 }}
+                                </span>
+                            </td>
+                            <td>
+                            <!-- Botón Editar -->
+                            <button type="button" class="btn btn-sm btn-outline-primary me-1" data-bs-toggle="modal" data-bs-target="#modalEditarCombo{{ combo.id }}">
+                                <i class="fa-solid fa-pen"></i>
+                            </button>
+
+                            <!-- Botón Eliminar -->
+                            <a href="/admin/combos/eliminar/{{ combo.id }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('¿Eliminar este combo?')">
+                                <i class="fa-solid fa-trash"></i>
+                            </a>
+
+                            <!-- Modal de Edición oculto -->
+                            <div class="modal fade" id="modalEditarCombo{{ combo.id }}" tabindex="-1" aria-hidden="true">
+                                <div class="modal-dialog text-start">
+                                    <div class="modal-content bg-dark text-light border-secondary">
+                                        <div class="modal-header border-secondary">
+                                            <h5 class="modal-title text-info">Editar Combo</h5>
+                                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                        </div>
+                                        <form action="/admin/combos/editar/{{ combo.id }}" method="POST" enctype="multipart/form-data">
+                                            <div class="modal-body">
+                                                <div class="mb-3">
+                                                    <label class="form-label small text-muted">Nombre del Combo</label>
+                                                    <input type="text" name="nombre" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ combo.nombre }}" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label small text-muted">Precio ($)</label>
+                                                    <input type="number" step="0.01" name="precio" class="form-control form-control-sm bg-dark text-light border-secondary" value="{{ combo.precio }}" required>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label small text-muted">Descripción</label>
+                                                    <textarea name="descripcion" class="form-control form-control-sm bg-dark text-light border-secondary" rows="2">{{ combo.descripcion }}</textarea>
+                                                </div>
+                                                <div class="mb-3">
+                                                    <label class="form-label small text-muted">Nueva Imagen (Opcional)</label>
+                                                    <input type="file" name="imagen" class="form-control form-control-sm bg-dark text-light border-secondary" accept="image/*">
+                                                    <small class="text-muted d-block mt-1">Si no subes una foto nueva, se mantendrá la actual.</small>
+                                                </div>
+                                            </div>
+                                            <div class="modal-footer border-secondary">
+                                                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                                <button type="submit" class="btn btn-sm btn-primary">Guardar Cambios</button>
+                                            </div>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="4" class="text-muted text-center">No hay combos creados.</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabla de Base de Datos de Ventas -->
+<div class="card card-custom p-4">
+    <h5 class="mb-3">Base de Datos de Clientes y Boletas</h5>
+    <div class="table-responsive">
+        <table class="table table-dark table-striped align-middle">
+            <thead>
+                <tr>
+                    <th>Código</th>
+                    <th>Cédula</th>
+                    <th>Nombre</th>
+                    <th>Celular</th>
+                    <th>Asientos</th>
+                    <th>Combos</th>
+                    <th>Total Pagado</th>
+                    <th>Método</th>
+                    <th>Fecha</th>
+                    <th>Acción</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for v in ventas %}
+                <tr>
+                    <td><span class="badge bg-secondary">{{ v.codigo_boleta }}</span></td>
+                    <td>{{ v.cedula }}</td>
+                    <td>{{ v.nombre }}</td>
+                    <td>{{ v.celular }}</td>
+                    <td><span class="text-warning">{{ v.asientos_texto }}</span></td>
+                    <td><small>{{ v.combos_texto }}</small></td>
+                    <td class="text-success fw-bold">$ {{ "{:,.0f}".format(v.total) }}</td>
+                    <td>{{ v.metodo_pago }}</td>
+                    <td><small class="text-muted">{{ v.fecha }}</small></td>
+                    <td>
+                        <div class="d-flex gap-1">
+                            <!-- Botón Ver Boletas (Ojo) -->
+                            <button type="button" class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#modalBoleta{{ v.id }}" title="Ver Boletas">
+                                <i class="fa-solid fa-eye"></i>
+                            </button>
+
+                            <!-- NUEVO Botón para Eliminar Venta -->
+                            <form action="/admin/eliminar_venta/{{ v.id }}" method="POST" style="margin:0;" onsubmit="return confirm('⚠️ ¿Estás seguro de eliminar la venta de {{ v.nombre }}? \n\nLas sillas ({{ v.asientos_texto }}) quedarán libres y se restará el dinero de la caja.');">
+                                <button type="submit" class="btn btn-sm btn-danger" title="Eliminar Venta">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Modal para previsualizar las boletas de esta venta -->
+                        <div class="modal fade" id="modalBoleta{{ v.id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered modal-lg">
+                                <div class="modal-content bg-dark text-light border-secondary">
+                                    <div class="modal-header border-secondary">
+                                        <h5 class="modal-title text-info">Boletas de la Venta: {{ v.codigo_boleta }}</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body text-center">
+                                        <div class="row">
+                                            <!-- Ticket de Entrada (Siempre se genera) -->
+                                            <div class="col-md-6 mb-3">
+                                                <h6 class="text-warning mb-3">🎟️ Ticket de Entrada</h6>
+                                                <img src="/static/tickets/{{ v.codigo_boleta }}-ENTRADA.png" class="img-fluid rounded shadow" alt="Entrada">
+                                            </div>
+                                            
+                                            <!-- Ticket de Combos (Condicionado: solo se muestra si el cliente compró combos) -->
+                                            {% if v.combos_texto != 'Ninguno' %}
+                                            <div class="col-md-6 mb-3">
+                                                <h6 class="text-warning mb-3">🍔 Ticket de Comida</h6>
+                                                <img src="/static/tickets/{{ v.codigo_boleta }}-COMBOS.png" class="img-fluid rounded shadow" alt="Combos">
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="10" class="text-center text-muted">No hay registros de ventas.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fa-solid fa-ticket text-warning me-2"></i>Módulo: Diseño de Boleta</h2>
+    <a href="/admin/dashboard" class="btn btn-outline-light">
+        <i class="fa-solid fa-arrow-left me-2"></i>Volver al Dashboard
+    </a>
+</div>
+
+<div class="row g-4">
+    <!-- Formulario de Configuración de Boleta -->
+    <div class="col-lg-7">
+        <div class="card card-custom p-4">
+            <h5 class="mb-3 text-warning"><i class="fa-solid fa-pen-to-square me-2"></i>Editar Textos de la Boleta</h5>
+            <form action="/admin/diseno_boleta" method="POST" class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label small text-muted">Encabezado Izquierdo</label>
+                    <input type="text" name="boleta_encabezado_izq" class="form-control" value="{{ config.boleta_encabezado_izq }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small text-muted">Encabezado Derecho</label>
+                    <input type="text" name="boleta_encabezado_der" class="form-control" value="{{ config.boleta_encabezado_der }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small text-muted">Subtítulo Superior</label>
+                    <input type="text" name="boleta_subtitulo" class="form-control" value="{{ config.boleta_subtitulo }}" required>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label small text-muted">Título Principal (Película/Evento)</label>
+                    <input type="text" name="boleta_titulo" class="form-control" value="{{ config.boleta_titulo }}" required>
+                </div>
+                <div class="col-12">
+                    <label class="form-label small text-muted">Detalles / Descripción (Ej. Temporada / Capítulos)</label>
+                    <input type="text" name="boleta_detalles_titulo" class="form-control" value="{{ config.boleta_detalles_titulo }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small text-muted">Fecha del Evento</label>
+                    <input type="text" name="boleta_fecha" class="form-control" value="{{ config.boleta_fecha }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small text-muted">Hora del Evento</label>
+                    <input type="text" name="boleta_hora" class="form-control" value="{{ config.boleta_hora }}" required>
+                </div>
+                <div class="col-md-4">
+                    <label class="form-label small text-muted">Lugar / Sala</label>
+                    <input type="text" name="boleta_lugar" class="form-control" value="{{ config.boleta_lugar }}" required>
+                </div>
+                <div class="col-12 mt-4">
+                    <button type="submit" class="btn btn-warning w-100 fw-bold">
+                        <i class="fa-solid fa-floppy-disk me-2"></i>Guardar Diseño de Boleta
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Previsualización Estructurada -->
+    <div class="col-lg-5">
+        <div class="card card-custom p-4">
+            <h5 class="mb-3 text-info"><i class="fa-solid fa-eye me-2"></i>Estructura Visual</h5>
+            <div class="p-3 border border-secondary rounded bg-dark">
+                <div class="d-flex justify-content-between small text-muted mb-2 pb-1 border-bottom border-secondary">
+                    <span>{{ config.boleta_encabezado_izq }}</span>
+                    <span>{{ config.boleta_encabezado_der }}</span>
+                </div>
+                <span class="text-warning small fw-bold">{{ config.boleta_subtitulo }}</span>
+                <h3 class="fw-bold text-light mb-0">{{ config.boleta_titulo }}</h3>
+                <small class="text-muted d-block mb-3">{{ config.boleta_detalles_titulo }}</small>
+
+                <div class="row g-2 mb-2 small">
+                    <div class="col-6">
+                        <span class="text-muted d-block">FECHA</span>
+                        <strong>{{ config.boleta_fecha }}</strong>
+                    </div>
+                    <div class="col-6">
+                        <span class="text-muted d-block">HORA</span>
+                        <strong>{{ config.boleta_hora }}</strong>
+                    </div>
+                    <div class="col-12 mt-1">
+                        <span class="text-muted d-block">LUGAR</span>
+                        <strong>{{ config.boleta_lugar }}</strong>
+                    </div>
+                </div>
+
+                <div class="border-top border-secondary border-dashed pt-3 mt-3 d-flex align-items-center gap-3">
+                    <div class="bg-light p-2 rounded text-dark text-center fw-bold" style="width: 80px; height: 80px; font-size: 10px;">
+                        [ CÓDIGO QR ]
+                    </div>
+                    <div>
+                        <span class="text-muted small">BOLETA N°</span>
+                        <h2 class="fw-bold text-light mb-0">032</h2>
+                        <small class="text-muted">Nombre Cliente</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

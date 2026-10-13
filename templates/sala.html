@@ -1,0 +1,289 @@
+{% extends "base.html" %}
+
+{% block extra_head %}
+<style>
+    /* =========================================
+       DISEÑO DEL MAPA DE LA SALA
+       ========================================= */
+    .pantalla {
+        width: 100%;
+        height: 18px;
+        background: linear-gradient(to right, #38bdf8, #818cf8, #38bdf8);
+        border-radius: 50% 50% 0 0 / 30px 30px 0 0;
+        box-shadow: 0px 4px 15px rgba(56, 189, 248, 0.5);
+        margin-bottom: 2rem;
+    }
+
+    /* NUEVO DISEÑO DETALLADO DE BUTACAS (Para TODOS los estados) */
+    .asiento {
+        --seat-color: #3b82f6; /* Color azul por defecto (Estándar) */
+        --seat-text: white;
+        
+        position: relative;
+        z-index: 1; /* ¡ESTA ES LA LÍNEA CLAVE! Evita que las piezas 3D se escondan detrás del fondo */
+        width: 32px;      
+        height: 30px;     
+        margin: 12px 8px; /* Márgenes amplios para que quepan los apoyabrazos y el espaldar */
+        background-color: var(--seat-color);
+        color: var(--seat-text);
+        border-radius: 6px; 
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        font-weight: bold;
+        cursor: pointer;
+        user-select: none;
+        transition: all 0.2s;
+        border: 1px solid rgba(0, 0, 0, 0.3);
+        box-shadow: inset 0px -4px 6px rgba(0,0,0,0.3), inset 0px 2px 4px rgba(255,255,255,0.4);
+    }
+
+    /* 1. Espaldar de la butaca */
+    .asiento::before {
+        content: '';
+        position: absolute;
+        top: -8px;       
+        left: 3px;       
+        right: 3px;
+        height: 14px;
+        background-color: var(--seat-color);
+        border-radius: 8px 8px 0 0;
+        border: 1px solid rgba(0, 0, 0, 0.3);
+        box-shadow: inset 0px 3px 4px rgba(255,255,255,0.3);
+        z-index: -1;     
+        transition: all 0.2s;
+    }
+
+    /* 2. Apoyabrazos */
+    .asiento::after {
+        content: '';
+        position: absolute;
+        top: 6px;        
+        bottom: 2px;     
+        left: -6px;      
+        right: -6px;     
+        border-radius: 4px;
+        box-shadow: inset 5px 0 0 var(--seat-color), 
+                    inset -5px 0 0 var(--seat-color), 
+                    inset 6px 0 0 rgba(0,0,0,0.4), 
+                    inset -6px 0 0 rgba(0,0,0,0.4);
+        z-index: -1;
+        pointer-events: none;
+        transition: all 0.2s;
+    }
+
+    /* COLORES SEGÚN EL ESTADO DE LA BUTACA */
+    .asiento.asiento-a { --seat-color: #f59e0b; --seat-text: #1e293b; } /* VIP (Amarillo) */
+    .asiento.asiento-b { --seat-color: #3b82f6; --seat-text: white; }   /* Estándar (Azul) */
+    
+    .asiento.seleccionado {
+        --seat-color: #ef4444; /* Rojo */
+        --seat-text: white;
+        transform: scale(1.15);
+        z-index: 2;
+    }
+    
+    .asiento.ocupado {
+        --seat-color: #475569; /* Gris oscuro para el ocupado, pero con diseño de butaca */
+        --seat-text: #94a3b8;
+        cursor: not-allowed;
+        /* Quitamos la opacidad para que el diseño no se vea transparente ni feo */
+        opacity: 1; 
+    }
+    
+    /* Asiento Inhabilitado (Hueco vacío) */
+    .asiento.asiento-inhabilitado {
+        background-color: transparent !important;
+        color: #475569 !important;
+        border: 1px dashed #475569;
+        box-shadow: none;
+        cursor: not-allowed;
+    }
+    .asiento.asiento-inhabilitado::before,
+    .asiento.asiento-inhabilitado::after {
+        display: none;
+    }
+
+    /* Leyenda de colores */
+    .leyenda-box {
+        width: 20px;
+        height: 20px;
+        border-radius: 4px;
+        display: inline-block;
+        border: 1px solid rgba(0,0,0,0.3);
+    }
+    .leyenda-box.asiento-a { background-color: #f59e0b; }
+    .leyenda-box.asiento-b { background-color: #3b82f6; }
+    .leyenda-box.bg-danger { background-color: #ef4444 !important; }
+    .leyenda-box.bg-secondary { background-color: #475569 !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Cambio de container a container-fluid para usar el 100% de la pantalla -->
+<div class="container-fluid px-4 my-4 flex-grow-1">
+    
+    <!-- Mensajes de Alerta -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ 'danger' if category == 'error' else category }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- Fila principal que agrupa el mapa y el resumen -->
+    <div class="row w-100 m-0">
+        
+        <!-- 1. MAPA DE LA SALA (Ocupa 9 columnas para ser gigante) -->
+        <div class="col-lg-9">
+            <div class="card card-custom p-4 h-100">
+                <h3 class="text-center mb-3">Mapa de la Sala</h3>
+                
+                <div class="pantalla my-3"></div>
+                <p class="text-center text-muted small mb-4">PANTALLA</p>
+                
+                <!-- Eliminamos los bordes y agrupamos todo como una sola sala de cine -->
+                <div class="d-flex justify-content-center gap-5 overflow-auto py-3">
+                    {% for nave in naves %}
+                    <div class="d-flex flex-column align-items-center">
+                        {% for fila in nave.filas %}
+                            <div class="d-flex align-items-center mb-1 gap-1">
+                                
+                                <!-- LETRAS (AA, BB): Se muestran solo al lado izquierdo para la Nave 1, y al derecho para la Nave 2 (como en los cines reales) -->
+                                <span class="me-3 fw-bold etiqueta-fila-tv" style="width: 25px; text-align: right;">{{ fila.etiqueta }}</span>
+                            
+                                {% for asiento in fila.asientos %}
+                                    {% set tipo_clase = 'asiento-a' if asiento.es_vip else 'asiento-b' %}
+                                    {% if asiento.estado == 'inhabilitado' %}
+                                        <div class="asiento asiento-inhabilitado" title="Inhabilitada">X</div>
+                                    {% elif asiento.estado == 'ocupado' %}
+                                        <div class="asiento ocupado" title="Ocupado">{{ loop.index }}</div>
+                                    {% else %}
+                                        <div class="asiento {{ tipo_clase }}" 
+                                             data-codigo="{{ asiento.codigo }}" 
+                                             data-vip="{{ 'true' if asiento.es_vip else 'false' }}"
+                                             onclick="toggleAsiento(this)">
+                                            {{ loop.index }}
+                                        </div>
+                                     {% endif %}
+                                {% endfor %}
+
+                            </div>
+                        {% endfor %}
+                    </div>
+                    {% endfor %}
+                </div>
+
+                <!-- LEYENDA -->
+                <div class="d-flex justify-content-center gap-3 mt-4 flex-wrap small">
+                    <div><span class="leyenda-box asiento-a"></span> VIP</div>
+                    <div><span class="leyenda-box asiento-b"></span> Estándar</div>
+                    <div><span class="leyenda-box bg-danger"></span> Seleccionado</div>
+                    <div><span class="leyenda-box bg-secondary"></span> Ocupado</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. RESUMEN DE SELECCIÓN (Ocupa 3 columnas y encaja a la derecha) -->
+        <div class="col-lg-3 mt-4 mt-lg-0">
+            <div class="card card-custom p-4 h-100">
+                <h4>Resumen de Selección</h4>
+                <hr class="border-secondary">
+                <p><strong>Cliente:</strong> {{ cliente.nombre }}</p>
+                <p><strong>Cédula:</strong> {{ cliente.cedula }}</p>
+                <p><strong>Boletas a elegir:</strong> <span id="limite-boletas">{{ cliente.cantidad }}</span></p>
+                <p><strong>Asientos seleccionados:</strong> <span id="texto-asientos" class="text-warning">Ninguno</span></p>
+                <p class="fs-4 fw-bold">Total Boletas: <span id="total-precio" class="text-success">$0</span></p>
+
+                <form action="/combos" method="POST" id="form-asientos" class="mt-auto">
+                    <input type="hidden" name="asientos_json" id="input-asientos">
+                    <button type="submit" id="btn-continuar" class="btn btn-success w-100 fw-bold mt-3" disabled>
+                        Ir a Menú de Combos <i class="fa-solid ms-2"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script>
+    const socket = io();
+
+    document.addEventListener('DOMContentLoaded', () => {
+        // Capturamos el HTML del contenedor de las naves y lo enviamos
+        const mapaContenedor = document.querySelector('.d-flex.justify-content-center.gap-5.overflow-auto');
+        socket.emit('evento_cajero', {
+            pantalla: 'sillas',
+            nombre_cliente: '{{ cliente.nombre }}',
+            cantidad_boletas: '{{ cliente.cantidad }}',
+            mapa_html: mapaContenedor ? mapaContenedor.innerHTML : ''
+        });
+    });
+
+    const limiteBoletas = {{ cliente.cantidad }};
+    let seleccionados = [];
+
+    function obtenerPrecio(esVip) { return esVip ? 13000 : 10000; }
+
+    function toggleAsiento(elemento) {
+        if (elemento.classList.contains('ocupado') || elemento.classList.contains('asiento-inhabilitado')) return;
+
+        const codigo = elemento.getAttribute('data-codigo');
+        const esVip = elemento.getAttribute('data-vip') === 'true';
+        const index = seleccionados.findIndex(item => item.codigo === codigo);
+
+        if (index > -1) {
+            seleccionados.splice(index, 1);
+            elemento.classList.remove('seleccionado');
+        } else {
+            if (seleccionados.length >= limiteBoletas) {
+                alert(`Solo puedes seleccionar ${limiteBoletas} asiento(s).`);
+                return;
+            }
+            seleccionados.push({ codigo: codigo, precio: obtenerPrecio(esVip) });
+            elemento.classList.add('seleccionado');
+        }
+        actualizarResumen();
+    }
+
+    function actualizarResumen() {
+        const textoAsientos = document.getElementById('texto-asientos');
+        const totalPrecio = document.getElementById('total-precio');
+        const inputAsientos = document.getElementById('input-asientos');
+        const btnContinuar = document.getElementById('btn-continuar');
+
+        if (seleccionados.length === 0) {
+            textoAsientos.textContent = 'Ninguno';
+            totalPrecio.textContent = '$0';
+            btnContinuar.disabled = true;
+            inputAsientos.value = '';
+        } else {
+            const codigos = seleccionados.map(s => s.codigo).join(', ');
+            const total = seleccionados.reduce((sum, s) => sum + s.precio, 0);
+            textoAsientos.textContent = codigos;
+            totalPrecio.textContent = '$' + total.toLocaleString('es-CO');
+            inputAsientos.value = JSON.stringify(seleccionados);
+            btnContinuar.disabled = (seleccionados.length !== limiteBoletas);
+        }
+
+        // Enviamos el HTML clonado al instante con las sillas seleccionadas en rojo
+        const mapaContenedor = document.querySelector('.d-flex.justify-content-center.gap-5.overflow-auto');
+        socket.emit('evento_cajero', {
+            pantalla: 'sillas',
+            accion: 'actualizar_asientos',
+            sillas: seleccionados.map(s => s.codigo),
+            total: totalPrecio.textContent,
+            mapa_html: mapaContenedor ? mapaContenedor.innerHTML : ''
+        });
+    }
+</script>
+{% endblock %}

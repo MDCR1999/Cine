@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card card-custom p-4 shadow-lg">
+            <h3 class="text-center mb-4"><i class="fa-solid text-warning me-2"></i>Paso 1: Datos del Cliente</h3>
+            <form action="/sala" method="POST">
+                <div class="mb-3">
+                    <label for="cedula" class="form-label">Cédula / Documento:</label>
+                    <input type="text" class="form-control bg-dark text-light border-secondary" id="cedula" name="cedula" required placeholder="Ej. 1098765432">
+                </div>
+                <div class="mb-3">
+                    <label for="nombre" class="form-label">Nombre Completo:</label>
+                    <input type="text" class="form-control bg-dark text-light border-secondary" id="nombre" name="nombre" required placeholder="Ej. Juan Pérez">
+                </div>
+                <div class="mb-3">
+                    <label for="celular" class="form-label">Número de Celular (WhatsApp):</label>
+                    <input type="tel" class="form-control bg-dark text-light border-secondary" id="celular" name="celular" required placeholder="Ej. 3001234567">
+                </div>
+                <div class="mb-4">
+                    <label for="cantidad" class="form-label">Cantidad de Boletas:</label>
+                    <input type="number" class="form-control bg-dark text-light border-secondary" id="cantidad" name="cantidad" min="1" max="10" value="1" required>
+                </div>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-success btn-lg fw-bold">Continuar a Selección de Asientos <i class="fa-solid ms-2"></i></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+<script>
+    const socket = io();
+
+    // En cuanto el cajero carga la pantalla inicial (Nueva Venta), el TV se va a publicidad
+    document.addEventListener('DOMContentLoaded', () => {
+        socket.emit('evento_cajero', { pantalla: 'reposo' });
+    });
+</script>
+{% endblock %}

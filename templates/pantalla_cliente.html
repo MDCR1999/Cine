@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pantalla Cliente</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body, html {
+            margin: 0; padding: 0; width: 100vw; height: 100vh;
+            background-color: #000; overflow: hidden;
+            color: white; font-family: 'Arial', sans-serif;
+        }
+        #capa-reposo {
+            width: 100%; height: 100%;
+            background-image: url("{{ url_for('static', filename='BANNER PARA TV.jpg') }}");
+            background-size: cover; background-position: center; display: block;
+        }
+        #contenedor-activo {
+            display: none; width: 100%; height: 100%;
+            padding: 20px; box-sizing: border-box;
+        }
+        .layout-dividido { display: flex; height: 100%; gap: 20px; }
+        
+        .area-principal {
+            flex: 3; background-color: #1a1a1a; border-radius: 15px;
+            padding: 20px; display: flex; flex-direction: column;
+        }
+        .area-resumen {
+            flex: 1; background-color: #0f172a; border-radius: 15px;
+            padding: 20px; border: 2px solid #d4af37; display: flex; flex-direction: column;
+        }
+
+        h2, h3, h4 { color: #d4af37; }
+        
+        /* Ocultar capas internas correctamente */
+        #capa-sillas, #capa-combos, #capa-pago { display: none; height: 100%; flex-direction: column; justify-content: center;}
+
+        /* --- ESTILOS DE TUS BUTACAS Y COMBOS (Clonados de la taquilla) --- */
+    #mapa-sillas-cliente {
+        /* Se elimina el scale(0.9) para que aproveche todo el espacio real */
+        max-height: 75vh; 
+        align-items: center;
+    }
+    
+    /* Efecto de pantalla de cine luminosa curva idéntica al cajero */
+    .pantalla-luminosa {
+        width: 80%;
+        height: 15px;
+        background: linear-gradient(90deg, transparent 0%, #3b82f6 50%, transparent 100%);
+        border-top: 4px solid #60a5fa;
+        border-radius: 50% / 100% 100% 0 0;
+        box-shadow: 0px 10px 25px rgba(59, 130, 246, 0.8);
+        margin: 10px auto 5px auto;
+    }
+
+    .asiento {
+        --seat-color: #3b82f6; --seat-text: white;
+        position: relative; z-index: 1; 
+        width: 32px; height: 30px; /* TAMAÑO GRANDE ORIGINAL RESTAURADO */
+        margin: 12px 8px; /* MARGEN ORIGINAL RESTAURADO */
+        background-color: var(--seat-color); color: var(--seat-text); border-radius: 6px; 
+        display: flex; align-items: center; justify-content: center;
+        font-size: 11px; font-weight: bold;
+        border: 1px solid rgba(0, 0, 0, 0.3);
+        box-shadow: inset 0px -4px 6px rgba(0,0,0,0.3), inset 0px 2px 4px rgba(255,255,255,0.4);
+        cursor: default !important; 
+    }
+    .asiento::before {
+        content: ''; position: absolute; top: -8px; left: 3px; right: 3px; height: 14px;
+        background-color: var(--seat-color); border-radius: 8px 8px 0 0;
+        border: 1px solid rgba(0, 0, 0, 0.3); box-shadow: inset 0px 3px 4px rgba(255,255,255,0.3); z-index: -1;
+    }
+    .asiento::after {
+        content: ''; position: absolute; top: 6px; bottom: 2px; left: -6px; right: -6px; border-radius: 4px;
+        box-shadow: inset 5px 0 0 var(--seat-color), inset -5px 0 0 var(--seat-color), 
+                    inset 6px 0 0 rgba(0,0,0,0.4), inset -6px 0 0 rgba(0,0,0,0.4); z-index: -1;
+    }
+        .asiento.asiento-a { --seat-color: #4000FF; --seat-text: white; box-shadow: 0 0 10px rgba(64,0,255,0.8); } 
+        .asiento.asiento-b { --seat-color: #4000FF; --seat-text: white; box-shadow: 0 0 10px rgba(64,0,255,0.8); }   
+        .asiento.seleccionado { --seat-color: #ef4444; --seat-text: white; transform: scale(1.15); z-index: 2; }
+        .asiento.ocupado { --seat-color: #1E2D40; --seat-text: #94a3b8; opacity: 1; border: 1px solid #111; box-shadow: none; }
+        .asiento.asiento-inhabilitado { background-color: transparent !important; color: #475569 !important; border: 1px dashed #475569; box-shadow: none; }
+        .asiento.asiento-inhabilitado::before, .asiento.asiento-inhabilitado::after { display: none; }
+    
+        /* --- ESTILOS COMPARTIDOS --- */
+    #catalogo-combos .input-group { display: none !important; }
+    .card-custom { background-color: #212529; border: 1px solid #495057; border-radius: 10px; color: white;}
+    #mapa-sillas-cliente { 
+        max-height: 75vh; 
+        align-items: center; 
+        transform: scale(0.99, 1.15); /* 0.92 a los lados para que no se corte, 1.15 hacia arriba */
+        transform-origin: top center;
+        margin-bottom: 80px !important; /* Un poco de margen para que respire por debajo */
+    }
+
+    /* Ajuste de letras de las filas para el TV y leyenda */
+    .etiqueta-fila-tv {
+        color: #A9EE58 !important;
+        text-shadow: 0px 0px 8px #A9EE58; /* Color verde muy brillante */
+        font-size: 16px;
+    }
+    .leyenda-cliente span { display: inline-block; width: 15px; height: 15px; border-radius: 3px; margin-right: 5px; vertical-align: middle; }
+
+    /* --- ESTILOS DE COMBOS GIGANTES PARA EL TV (Apilados verticalmente) --- */
+    #catalogo-combos .card-img-top { 
+        height: 380px !important; /* Fotografía mucho más grande y alta */
+        object-fit: cover; 
+    }
+    #catalogo-combos .card-title { 
+        font-size: 2.5rem !important; /* Nombre del combo gigante */
+        color: #d4af37; 
+        font-weight: bold; 
+    }
+    #catalogo-combos .card-text { 
+        font-size: 1.4rem !important; /* Descripción más legible */
+        color: #cbd5e1 !important; 
+    }
+    #catalogo-combos .text-success { 
+        font-size: 2.5rem !important; /* Precio gigante y llamativo */
+        font-weight: bold; 
+    }
+</style>
+</head>
+<body>
+    <div id="capa-reposo"></div>
+
+    <div id="contenedor-activo">
+        <div class="layout-dividido">
+            <div class="area-principal">
+                
+                <div id="capa-sillas">
+                <h2 class="text-center mb-4 text-light">Sala de cine</h2>
+            
+                <!-- Pantalla luminosa igual a la vista del cajero -->
+                <div class="pantalla-luminosa"></div>
+                <p class="text-center small mb-4" style="color: #1a1a1a;">PANTALLA</p> <!-- Casi invisible -->
+            
+                <div id="mapa-sillas-cliente" class="d-flex justify-content-center gap-4 overflow-auto py-3"></div>
+
+                <!-- Nueva leyenda de colores en la parte baja -->
+                <div class="d-flex justify-content-center gap-4 leyenda-cliente text-light small" style="margin-top: 40px; position: relative; z-index: 10;">
+                    <div><span style="background-color: #4000FF; box-shadow: 0 0 8px rgba(64,0,255,0.8);"></span> Libre</div>
+                    <div><span style="background-color: #ef4444;"></span> Seleccionado</div>
+                    <div><span style="background-color: #1E2D40;"></span> Ocupado</div>
+                </div>
+            </div>
+
+                <div id="capa-combos">
+                <h2 class="text-center mb-4 text-light">Menú de Cafetería</h2>
+                <!-- Quitamos row-cols-md-2 para forzar una sola columna hacia abajo y damos más margen -->
+                <div id="catalogo-combos" class="row row-cols-1 g-5 overflow-auto px-4 pb-4" style="max-height: 75vh;"></div>
+            </div>
+
+                <!-- CORRECCIÓN: Quitamos d-flex de esta línea -->
+                <div id="capa-pago" class="align-items-center justify-content-center text-center">
+                     <h2 class="mb-5" style="font-size: 4rem;">Total a Pagar</h2>
+                     <div id="total-pago-final" style="font-size: 6rem; font-weight: bold; color: #28a745;">$0</div>
+                     
+                     <div id="contenedor-qr-pago" class="mt-5" style="display: none;">
+                         <h4 class="text-light mb-4">Escanea para pagar</h4>
+                         <div id="imagen-qr-banco" style="background: white; padding: 20px; border-radius: 10px; display: inline-block;"></div>
+                     </div>
+                     <div id="mensaje-efectivo" class="mt-5" style="display: none;">
+                         <h4 class="text-info">Pago en Efectivo</h4>
+                         <p class="text-light fs-5 mt-2">Por favor, entrega el dinero al cajero.</p>
+                     </div>
+                </div>
+            </div>
+
+            <div class="area-resumen">
+                <h3 class="text-center border-bottom border-secondary pb-3 mb-4">Tu Pedido</h3>
+                <div class="mb-4">
+                    <p class="mb-1 text-muted small">A nombre de:</p>
+                    <h4 class="text-light m-0" id="resumen-nombre-cliente">---</h4>
+                </div>
+                <div class="flex-grow-1 overflow-auto">
+                    <h5 class="text-info mt-3 border-bottom border-secondary pb-1">Entradas (<span id="resumen-cantidad-boletas">0</span>)</h5>
+                    <ul id="lista-resumen-asientos" class="list-unstyled mb-4"></ul>
+                    <h5 class="text-info mt-3 border-bottom border-secondary pb-1">Cafetería</h5>
+                    <ul id="lista-resumen-combos" class="list-unstyled mb-4"></ul>
+                </div>
+                <div class="mt-auto pt-3 border-top border-secondary text-center">
+                    <p class="text-muted small mb-1">Total Acumulado</p>
+                    <h2 class="text-success m-0" id="resumen-total-general">$0</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
+    <script>
+        const socket = io();
+        
+        socket.on('evento_tv', function(datos) {
+            if (datos.pantalla) {
+                document.getElementById('capa-reposo').style.display = 'none';
+                document.getElementById('contenedor-activo').style.display = 'none';
+                document.getElementById('capa-sillas').style.display = 'none';
+                document.getElementById('capa-combos').style.display = 'none';
+                document.getElementById('capa-pago').style.display = 'none';
+
+                if (datos.pantalla === 'reposo') {
+                    document.getElementById('capa-reposo').style.display = 'block';
+                    limpiarResumen();
+                } 
+                else if (datos.pantalla === 'sillas') {
+                    document.getElementById('contenedor-activo').style.display = 'block';
+                    document.getElementById('capa-sillas').style.display = 'flex';
+                    if (datos.nombre_cliente) {
+                        document.getElementById('resumen-nombre-cliente').innerText = datos.nombre_cliente;
+                        document.getElementById('resumen-cantidad-boletas').innerText = datos.cantidad_boletas;
+                    }
+                    if (datos.mapa_html) { document.getElementById('mapa-sillas-cliente').innerHTML = datos.mapa_html; }
+                }
+                else if (datos.pantalla === 'combos') {
+                    document.getElementById('contenedor-activo').style.display = 'block';
+                    document.getElementById('capa-combos').style.display = 'flex';
+                    if (datos.catalogo_html) { document.getElementById('catalogo-combos').innerHTML = datos.catalogo_html; }
+                }
+                else if (datos.pantalla === 'pago') {
+                    document.getElementById('contenedor-activo').style.display = 'block';
+                    document.getElementById('capa-pago').style.display = 'flex';
+                    if (datos.metodo && datos.metodo.includes("Nequi")) {
+                        document.getElementById('mensaje-efectivo').style.display = 'none';
+                        document.getElementById('contenedor-qr-pago').style.display = 'block';
+                        const total = document.getElementById('resumen-total-general').innerText;
+                        document.getElementById('imagen-qr-banco').innerHTML = `<img src="https://chart.googleapis.com/chart?chs=250x250&cht=qr&chl=${encodeURIComponent('Transferencia por ' + total)}" alt="QR Banco">`;
+                    } else {
+                        document.getElementById('contenedor-qr-pago').style.display = 'none';
+                        document.getElementById('mensaje-efectivo').style.display = 'block';
+                    }
+                }
+            }
+
+            if (datos.accion === 'actualizar_asientos') {
+                if (datos.mapa_html) { document.getElementById('mapa-sillas-cliente').innerHTML = datos.mapa_html; }
+                const listaAsientos = document.getElementById('lista-resumen-asientos');
+                listaAsientos.innerHTML = ''; 
+                if (datos.sillas && datos.sillas.length > 0) {
+                     listaAsientos.innerHTML = `<li class="text-light mb-2">Asientos: <strong class="text-warning">${datos.sillas.join(', ')}</strong></li>`;
+                }
+                document.getElementById('resumen-total-general').innerText = datos.total;
+                document.getElementById('total-pago-final').innerText = datos.total;
+            }
+
+            if (datos.accion === 'actualizar_combos') {
+                const listaCombos = document.getElementById('lista-resumen-combos');
+                listaCombos.innerHTML = '';
+                if (datos.combos && datos.combos.length > 0) {
+                    datos.combos.forEach(c => { listaCombos.innerHTML += `<li class="text-light mb-2">• ${c.nombre} <strong class="text-warning">(x${c.cantidad})</strong></li>`; });
+                }
+                document.getElementById('resumen-total-general').innerText = datos.total;
+                document.getElementById('total-pago-final').innerText = datos.total;
+            }
+        });
+
+        function limpiarResumen() {
+            document.getElementById('resumen-nombre-cliente').innerText = '---';
+            document.getElementById('resumen-cantidad-boletas').innerText = '0';
+            document.getElementById('lista-resumen-asientos').innerHTML = '';
+            document.getElementById('lista-resumen-combos').innerHTML = '';
+            document.getElementById('resumen-total-general').innerText = '$0';
+            document.getElementById('total-pago-final').innerText = '$0';
+        }
+    </script>
+</body>
+</html>
