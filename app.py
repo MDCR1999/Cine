@@ -911,10 +911,14 @@ def editar_combo(id):
     flash('Combo actualizado correctamente.', 'success')
     return redirect(url_for('admin_dashboard'))
 
+# if __name__ == '__main__':
+#     print("\n" + "="*50)
+#     print("🚀 SERVIDOR INICIADO CORRECTAMENTE")
+#     print("👉 CAJERO (Ctrl + Clic aquí): http://127.0.0.1:5000")
+#     print("👉 PANTALLA TV (Desde otro PC): http://0.0.0.0:5000/pantalla_cliente (Reemplaza 0.0.0.0 por tu IP)")
+#     print("="*50 + "\n")
+#     socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+
 if __name__ == '__main__':
-    print("\n" + "="*50)
-    print("🚀 SERVIDOR INICIADO CORRECTAMENTE")
-    print("👉 CAJERO (Ctrl + Clic aquí): http://127.0.0.1:5000")
-    print("👉 PANTALLA TV (Desde otro PC): http://0.0.0.0:5000/pantalla_cliente (Reemplaza 0.0.0.0 por tu IP)")
-    print("="*50 + "\n")
-    socketio.run(app, host='0.0.0.0', port=5000, debug=True)
+    puerto = int(os.environ.get('PORT', 5000))
+    socketio.run(app, host='0.0.0.0', port=puerto, allow_unsafe_werkzeug=True)
