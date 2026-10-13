@@ -375,7 +375,7 @@ def confirmar_pago():
         rutas_generadas.append(ruta_combo)
 
     # 3. Envío de WhatsApp (Le pasamos la lista de TODAS las imágenes generadas)
-    enviar_whatsapp(cliente['celular'], rutas_generadas)
+    # enviar_whatsapp(cliente['celular'], rutas_generadas) # DESACTIVADO: Selenium no corre en Render
 
     return render_template('boleta.html', 
                            cliente=cliente, 

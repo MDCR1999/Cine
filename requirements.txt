@@ -1,0 +1,10 @@
+flask
+flask-socketio
+eventlet
+gunicorn
+qrcode
+pillow
+pandas
+openpyxl
+selenium
+webdriver-manager
