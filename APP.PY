@@ -23,6 +23,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 
+# --- Inicio colaboracion de Fredy Talero
+
 app = Flask(__name__)
 app.secret_key = 'clave_secreta_cine_app'
 socketio = SocketIO(app, cors_allowed_origins="*") # NUEVO: Inicializamos el "túnel"
